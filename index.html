@@ -1,1 +1,159 @@
-hai this is bala welcome here
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Retirement Calculator with Graphs</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f7f9fc; }
+    h2 { color: #0059b3; }
+    .section { border: 2px solid #ccc; padding: 15px; margin-bottom: 20px; background: white; }
+    label { display: block; margin: 10px 0 5px; }
+    input[type="range"], input[type="number"] { width: 100%; }
+    .results { font-size: 1.1em; margin-top: 10px; }
+    canvas { max-width: 100%; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+<h1>Retirement Calculator (With Graphs)</h1>
+
+<!-- Step 1 -->
+<div class="section">
+  <h2>Step 1: SIP Investment (Age 23–25)</h2>
+  <label>Monthly Investment (₹): <input type="number" id="sipAmount" value="20000"></label>
+  <label>Expected Return Rate (%): <input type="range" id="sipRate" min="1" max="20" value="13"> <span id="sipRateVal">13%</span></label>
+  <div class="results">
+    Total Invested: ₹<span id="sipInvested">7.20</span>L <br>
+    Maturity Value: ₹<span id="sipMaturity">8.84</span>L <br>
+    Gains: ₹<span id="sipGain">1.64</span>L
+  </div>
+  <canvas id="sipChart" height="100"></canvas>
+</div>
+
+<!-- Step 2 -->
+<div class="section">
+  <h2>Step 2: Growth till Age 55</h2>
+  <label>Expected Return Rate (%): <input type="range" id="growthRate" min="1" max="20" value="13"> <span id="growthRateVal">13%</span></label>
+  <div class="results">
+    Invested: ₹<span id="growthInvested">8.84</span>L <br>
+    Maturity Value: ₹<span id="growthMaturity">3.46</span> Cr <br>
+    Gains: ₹<span id="growthGain">3.37</span> Cr
+  </div>
+  <canvas id="growthChart" height="100"></canvas>
+</div>
+
+<!-- Step 3 -->
+<div class="section">
+  <h2>Step 3: Retirement Withdrawal (Age 56–100)</h2>
+  <label>Monthly Withdrawal (₹): <input type="number" id="withdrawal" value="150000"></label>
+  <label>Expected Return Rate (%): <input type="range" id="retRate" min="1" max="15" value="10"> <span id="retRateVal">10%</span></label>
+  <label>Withdrawal Years: <input type="range" id="withdrawYears" min="10" max="50" value="45"> <span id="withdrawYearsVal">45</span> Years</label>
+  <label>Withdrawal Increment Rate (%): <input type="range" id="incRate" min="0" max="10" value="5"> <span id="incRateVal">5%</span></label>
+  <div class="results">
+    Total Withdrawn: ₹<span id="totalWithdrawal">28.75</span> Cr <br>
+    Final Portfolio Balance: ₹<span id="finalBalance">30.00</span> Cr
+  </div>
+  <canvas id="retChart" height="100"></canvas>
+</div>
+
+<script>
+let sipChart, growthChart, retChart;
+
+function update() {
+  // Step 1: SIP
+  let sipAmount = +document.getElementById("sipAmount").value;
+  let sipRate = +document.getElementById("sipRate").value;
+  document.getElementById("sipRateVal").textContent = sipRate + "%";
+
+  let invested1 = sipAmount * 12 * 3;
+  let maturity1 = 0;
+  let monthlyReturns = [];
+  for (let i = 0; i < 36; i++) {
+    let growth = sipAmount * Math.pow(1 + sipRate / 100 / 12, 36 - i);
+    maturity1 += growth;
+    monthlyReturns.push(maturity1);
+  }
+
+  document.getElementById("sipInvested").textContent = (invested1 / 100000).toFixed(2);
+  document.getElementById("sipMaturity").textContent = (maturity1 / 100000).toFixed(2);
+  document.getElementById("sipGain").textContent = ((maturity1 - invested1) / 100000).toFixed(2);
+
+  if (sipChart) sipChart.destroy();
+  sipChart = new Chart(document.getElementById("sipChart"), {
+    type: "line",
+    data: {
+      labels: Array.from({ length: 36 }, (_, i) => `M${i + 1}`),
+      datasets: [{ label: "SIP Growth", data: monthlyReturns, borderColor: "#007bff", fill: false }]
+    }
+  });
+
+  // Step 2: Growth for 30 years
+  let growthRate = +document.getElementById("growthRate").value;
+  document.getElementById("growthRateVal").textContent = growthRate + "%";
+  let maturity2 = maturity1;
+  let growthData = [];
+  for (let i = 1; i <= 30; i++) {
+    maturity2 *= (1 + growthRate / 100);
+    growthData.push(maturity2);
+  }
+
+  document.getElementById("growthInvested").textContent = (maturity1 / 100000).toFixed(2);
+  document.getElementById("growthMaturity").textContent = (maturity2 / 10000000).toFixed(2);
+  document.getElementById("growthGain").textContent = ((maturity2 - maturity1) / 10000000).toFixed(2);
+
+  if (growthChart) growthChart.destroy();
+  growthChart = new Chart(document.getElementById("growthChart"), {
+    type: "line",
+    data: {
+      labels: Array.from({ length: 30 }, (_, i) => `Y${i + 1}`),
+      datasets: [{ label: "Investment Growth", data: growthData, borderColor: "green", fill: false }]
+    }
+  });
+
+  // Step 3: Withdrawal
+  let withdrawal = +document.getElementById("withdrawal").value;
+  let retRate = +document.getElementById("retRate").value;
+  let withdrawYears = +document.getElementById("withdrawYears").value;
+  let incRate = +document.getElementById("incRate").value;
+  document.getElementById("retRateVal").textContent = retRate + "%";
+  document.getElementById("withdrawYearsVal").textContent = withdrawYears;
+  document.getElementById("incRateVal").textContent = incRate + "%";
+
+  let balance = maturity2;
+  let totalWithdrawal = 0;
+  let currentWithdrawal = withdrawal * 12;
+  let yearLabels = [], withdrawalData = [], balanceData = [];
+
+  for (let i = 0; i < withdrawYears; i++) {
+    balance = balance * (1 + retRate / 100) - currentWithdrawal;
+    totalWithdrawal += currentWithdrawal;
+    yearLabels.push(`Y${i + 1}`);
+    withdrawalData.push(currentWithdrawal);
+    balanceData.push(balance);
+    currentWithdrawal *= (1 + incRate / 100);
+  }
+
+  document.getElementById("totalWithdrawal").textContent = (totalWithdrawal / 10000000).toFixed(2);
+  document.getElementById("finalBalance").textContent = (balance / 10000000).toFixed(2);
+
+  if (retChart) retChart.destroy();
+  retChart = new Chart(document.getElementById("retChart"), {
+    type: "line",
+    data: {
+      labels: yearLabels,
+      datasets: [
+        { label: "Annual Withdrawal", data: withdrawalData, borderColor: "red", fill: false },
+        { label: "Remaining Balance", data: balanceData, borderColor: "blue", fill: false }
+      ]
+    }
+  });
+}
+
+document.querySelectorAll("input").forEach(i => i.addEventListener("input", update));
+update();
+</script>
+
+</body>
+</html>
